@@ -1,0 +1,801 @@
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>NEXUS-CP // CLOSEST PAIR PROTOCOL</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.10.0/highlight.min.js"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.10.0/styles/atom-one-dark.min.css">
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=VT323&amp;display=swap');
+    @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600&amp;display=swap');
+
+    :root {
+      --neon-cyan: #00f3ff;
+      --neon-pink: #ff00aa;
+      --void: #0a0a0a;
+    }
+
+    * {
+      transition: all 0.2s cubic-bezier(0.23, 1, 0.32, 1);
+    }
+
+    body {
+      background: #050505;
+      font-family: 'Space Grotesk', sans-serif;
+      overflow: hidden;
+    }
+
+    .glitch {
+      position: relative;
+      color: #00f3ff;
+      font-family: 'VT323', monospace;
+      font-size: 3.5rem;
+      letter-spacing: 4px;
+      text-shadow:
+        0 0 10px #00f3ff,
+        0 0 20px #00f3ff,
+        0 0 40px #ff00aa;
+    }
+
+    .glitch::before,
+    .glitch::after {
+      content: attr(data-text);
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+    }
+
+    .glitch::before {
+      animation: glitch-anim 2s infinite linear alternate-reverse;
+      left: 2px;
+      text-shadow: -2px 0 #ff00aa;
+      clip: rect(0, 900px, 0, 0);
+    }
+
+    .glitch::after {
+      animation: glitch-anim2 1.5s infinite linear alternate-reverse;
+      left: -2px;
+      text-shadow: 2px 0 #00f3ff;
+      clip: rect(0, 900px, 0, 0);
+    }
+
+    @keyframes glitch-anim {
+      0% {
+        clip: rect(10px, 9999px, 40px, 0);
+      }
+
+      5% {
+        clip: rect(50px, 9999px, 80px, 0);
+      }
+
+      10% {
+        clip: rect(20px, 9999px, 60px, 0);
+      }
+
+      100% {
+        clip: rect(30px, 9999px, 70px, 0);
+      }
+    }
+
+    @keyframes glitch-anim2 {
+      0% {
+        clip: rect(70px, 9999px, 100px, 0);
+      }
+
+      5% {
+        clip: rect(20px, 9999px, 50px, 0);
+      }
+
+      10% {
+        clip: rect(80px, 9999px, 110px, 0);
+      }
+    }
+
+    #canvas {
+      border: 3px solid rgba(0, 243, 255, 0.3);
+      box-shadow:
+        0 0 30px rgba(0, 243, 255, 0.6),
+        inset 0 0 40px rgba(255, 0, 170, 0.2);
+    }
+
+    .scanline {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(to bottom,
+          transparent 50%,
+          rgba(0, 243, 255, 0.03) 50%);
+      background-size: 100% 4px;
+      pointer-events: none;
+      animation: scan 4s linear infinite;
+      z-index: 10;
+      opacity: 0.6;
+    }
+
+    @keyframes scan {
+      0% {
+        transform: translateY(-100%);
+      }
+
+      100% {
+        transform: translateY(100%);
+      }
+    }
+
+    .neon-button {
+      position: relative;
+      overflow: hidden;
+    }
+
+    .neon-button::after {
+      content: '';
+      position: absolute;
+      top: -50%;
+      left: -50%;
+      width: 40%;
+      height: 300%;
+      background: linear-gradient(120deg,
+          transparent,
+          rgba(255, 255, 255, 0.4),
+          transparent);
+      transform: skewX(-25deg);
+      animation: neon-sweep 3s infinite;
+    }
+
+    @keyframes neon-sweep {
+      0% {
+        transform: translateX(-200%) skewX(-25deg);
+      }
+
+      100% {
+        transform: translateX(400%) skewX(-25deg);
+      }
+    }
+
+    .point {
+      filter: drop-shadow(0 0 12px #00f3ff);
+    }
+  </style>
+</head>
+
+<body class="bg-[#050505] text-white overflow-hidden">
+  <div class="flex h-screen">
+    <!-- LEFT CONTROL PANEL -->
+    <div class="w-72 bg-black/90 border-r border-cyan-500/30 flex flex-col p-6">
+      <div class="flex items-center gap-3 mb-8">
+        <div class="w-10 h-10 bg-gradient-to-br from-cyan-400 to-pink-500 rounded-xl flex items-center justify-center text-2xl shadow-[0_0_25px_#00f3ff]">⚡</div>
+        <div>
+          <h1 class="glitch text-4xl font-bold tracking-widest" data-text="NEXUS-CP">NEXUS-CP</h1>
+          <p class="text-[10px] text-cyan-400/70 tracking-[4px] -mt-1">CLOSEST PAIR PROTOCOL v9.9</p>
+        </div>
+      </div>
+
+      <div class="space-y-6">
+        <!-- ACTIONS -->
+        <div class="space-y-2">
+          <button onclick="addRandomPoints(80)" class="neon-button w-full py-4 bg-transparent border-2 border-cyan-400 text-cyan-400 hover:bg-cyan-400/10 font-mono text-sm tracking-widest flex items-center justify-center gap-2">
+            <span>INJECT RANDOM VOID POINTS</span>
+          </button>
+          <button onclick="clearAllPoints()" class="neon-button w-full py-4 bg-transparent border-2 border-pink-500 text-pink-500 hover:bg-pink-500/10 font-mono text-sm tracking-widest flex items-center justify-center gap-2">
+            <span>TERMINATE ALL POINTS</span>
+          </button>
+        </div>
+
+        <!-- TEST CASES -->
+        <div>
+          <p class="text-xs text-cyan-400/60 mb-2 font-mono">PRESET PROTOCOLS</p>
+          <div class="grid grid-cols-3 gap-2">
+            <button onclick="loadTestCase(1)" class="text-[10px] py-2 bg-zinc-900 hover:bg-zinc-800 border border-cyan-400/30 rounded">CASE 01</button>
+            <button onclick="loadTestCase(2)" class="text-[10px] py-2 bg-zinc-900 hover:bg-zinc-800 border border-cyan-400/30 rounded">CASE 02</button>
+            <button onclick="loadTestCase(3)" class="text-[10px] py-2 bg-zinc-900 hover:bg-zinc-800 border border-cyan-400/30 rounded">CASE 03</button>
+          </div>
+        </div>
+
+        <!-- ALGORITHM CONTROLS -->
+        <div class="pt-4 border-t border-cyan-400/20">
+          <div class="flex gap-2">
+            <button onclick="runBruteForceViz()" class="flex-1 py-3 text-xs font-mono border border-orange-400 text-orange-400 hover:bg-orange-400/10">BRUTE FORCE SIM</button>
+            <button onclick="runOptimized()" class="flex-1 py-3 text-xs font-mono border border-emerald-400 text-emerald-400 hover:bg-emerald-400/10">OPTIMIZED D&amp;C</button>
+          </div>
+          <div onclick="toggleAutoRun()" id="autoBtn" class="mt-3 text-center py-2 text-[10px] font-mono cursor-pointer bg-zinc-900 border border-pink-500/50 hover:border-pink-500">
+            AUTO-RECOMPUTE ENABLED
+          </div>
+        </div>
+
+        <!-- STATS -->
+        <div class="bg-black/70 p-5 border border-cyan-400/30 rounded-xl font-mono text-xs">
+          <div class="flex justify-between mb-3">
+            <span class="text-cyan-400/70">POINTS IN VOID</span>
+            <span id="pointCount" class="text-white">42</span>
+          </div>
+          <div class="flex justify-between mb-3">
+            <span class="text-cyan-400/70">CURRENT DISTANCE</span>
+            <span id="currentDist" class="text-emerald-400">0.000</span>
+          </div>
+          <div class="flex justify-between">
+            <span class="text-cyan-400/70">LAST COMPUTE</span>
+            <span id="lastTime" class="text-pink-400">0.00ms</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="mt-auto pt-8">
+        <div class="text-[10px] text-cyan-400/40 font-mono leading-tight">
+          DRAG TO MOVE<br>
+          CLICK TO INJECT<br>
+          SCROLL TO ZOOM<br>
+          DOUBLE-CLICK TO PURGE
+        </div>
+      </div>
+    </div>
+
+    <!-- CANVAS CONTAINER -->
+    <div class="flex-1 relative flex items-center justify-center bg-[#0a0a0a]" id="canvasContainer">
+      <canvas id="canvas" width="1200" height="800" class="rounded-3xl"></canvas>
+
+      <!-- OVERLAY HUD -->
+      <div class="absolute top-6 left-1/2 -translate-x-1/2 flex items-center gap-8 text-xs font-mono z-20">
+        <div id="modeDisplay" class="px-6 py-1.5 bg-black/80 border border-cyan-400/50 text-cyan-400 rounded-full flex items-center gap-2">
+          <div class="w-2 h-2 bg-cyan-400 rounded-full animate-pulse"></div>
+          READY
+        </div>
+      </div>
+
+      <!-- DISTANCE DISPLAY -->
+      <div id="distanceHUD" class="absolute bottom-8 left-1/2 -translate-x-1/2 hidden bg-black/90 border border-emerald-400 text-emerald-400 px-8 py-3 text-2xl font-mono rounded-2xl shadow-2xl flex items-center gap-4">
+        <span id="hudDist">0.000</span>
+        <span class="text-xs text-emerald-400/60">UNITS</span>
+      </div>
+
+      <!-- SCANLINE -->
+      <div class="scanline"></div>
+
+      <!-- PARTICLE OVERLAY -->
+      <canvas id="particleCanvas" width="1200" height="800" class="absolute top-0 left-0 pointer-events-none"></canvas>
+    </div>
+
+    <!-- RIGHT PANEL -->
+    <div class="w-80 bg-black/90 border-l border-pink-500/30 flex flex-col">
+      <div class="p-6 border-b border-pink-500/30">
+        <div class="flex items-center justify-between">
+          <div class="text-pink-400 text-sm font-mono">PAIR LOG</div>
+          <button onclick="copyCurrentPair()" class="text-[10px] px-3 py-1 border border-pink-400/50 hover:bg-pink-400/10">COPY JSON</button>
+        </div>
+      </div>
+
+      <div id="pairDisplay" class="p-6 font-mono text-xs space-y-4 flex-1 overflow-auto">
+        <!-- populated by JS -->
+      </div>
+
+      <!-- CODE TABS -->
+      <div class="border-t border-cyan-400/30 mt-auto">
+        <div class="flex border-b border-cyan-400/30">
+          <button onclick="showCodeTab(0)" id="tab0" class="flex-1 py-3 text-xs font-mono border-b-2 border-transparent hover:text-cyan-400 data-[active=true]:border-cyan-400 data-[active=true]:text-cyan-400">JS</button>
+          <button onclick="showCodeTab(1)" id="tab1" class="flex-1 py-3 text-xs font-mono border-b-2 border-transparent hover:text-cyan-400 data-[active=true]:border-cyan-400 data-[active=true]:text-cyan-400">PY</button>
+          <button onclick="showCodeTab(2)" id="tab2" class="flex-1 py-3 text-xs font-mono border-b-2 border-transparent hover:text-cyan-400 data-[active=true]:border-cyan-400 data-[active=true]:text-cyan-400">JAVA</button>
+        </div>
+
+        <div id="codeViewer" class="h-80 overflow-auto p-4 text-[10px] bg-black font-mono"></div>
+      </div>
+
+      <div class="p-4 text-[9px] text-center text-cyan-400/30 font-mono border-t border-pink-500/30">
+        O(n log n) SUPREMACY • 2026
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Tailwind script init
+    tailwind.config = {
+      content: [],
+      theme: {
+        extend: {}
+      }
+    }
+    // ====================== POINT CLASS ======================
+    class VoidPoint {
+      constructor(x, y) {
+        this.x = x
+        this.y = y
+      }
+    }
+    // ====================== CORE ALGORITHM ======================
+    function euclidDist(a, b) {
+      const dx = a.x - b.x
+      const dy = a.y - b.y
+      return Math.sqrt(dx * dx + dy * dy)
+    }
+
+    function bruteForce(points) {
+      if (points.length < 2) return {
+        distance: Infinity,
+        pair: []
+      }
+      let minD = Infinity
+      let best = []
+      for (let i = 0; i < points.length; i++) {
+        for (let j = i + 1; j < points.length; j++) {
+          const d = euclidDist(points[i], points[j])
+          if (d < minD) {
+            minD = d
+            best = [points[i], points[j]]
+          }
+        }
+      }
+      best.sort((a, b) => a.x - b.x)
+      return {
+        distance: minD,
+        pair: best
+      }
+    }
+
+    function stripClosest(strip, d) {
+      let minD = d
+      let best = []
+      for (let i = 0; i < strip.length; i++) {
+        for (let j = i + 1; j < strip.length && (strip[j].y - strip[i].y) < minD; j++) {
+          const dist = euclidDist(strip[i], strip[j])
+          if (dist < minD) {
+            minD = dist
+            best = [strip[i], strip[j]]
+          }
+        }
+      }
+      if (best.length === 2) best.sort((a, b) => a.x - b.x)
+      return {
+        distance: minD,
+        pair: best
+      }
+    }
+
+    function closestUtil(px, py) {
+      const n = px.length
+      if (n <= 3) return bruteForce(px)
+      const mid = Math.floor(n / 2)
+      const midPt = px[mid]
+      const leftX = px.slice(0, mid)
+      const rightX = px.slice(mid)
+      let leftY = []
+      let rightY = []
+      for (let p of py) {
+        if (p.x <= midPt.x) leftY.push(p)
+        else rightY.push(p)
+      }
+      const dl = closestUtil(leftX, leftY)
+      const dr = closestUtil(rightX, rightY)
+      let dmin = dl.distance < dr.distance ? dl : dr
+      let strip = []
+      for (let p of py) {
+        if (Math.abs(p.x - midPt.x) < dmin.distance) strip.push(p)
+      }
+      const ds = stripClosest(strip, dmin.distance)
+      if (ds.distance < dmin.distance) return ds
+      return dmin
+    }
+
+    function getClosestPair(points) {
+      if (points.length < 2) return {
+        distance: Infinity,
+        pair: []
+      }
+      const px = [...points].sort((a, b) => a.x - b.x)
+      const py = [...points].sort((a, b) => a.y - b.y)
+      return closestUtil(px, py)
+    }
+    // ====================== GLOBAL STATE ======================
+    let points = []
+    let currentPair = {
+      distance: 0,
+      pair: []
+    }
+    let scale = 1
+    let offsetX = 0
+    let offsetY = 0
+    let isDragging = false
+    let draggedPointIndex = -1
+    let lastMouseX = 0
+    let lastMouseY = 0
+    let autoRecompute = true
+    const canvas = document.getElementById('canvas')
+    const ctx = canvas.getContext('2d')
+    const pCanvas = document.getElementById('particleCanvas')
+    const pCtx = pCanvas.getContext('2d')
+    let particles = []
+    class DataParticle {
+      constructor() {
+        this.reset()
+      }
+      reset() {
+        this.x = Math.random() * canvas.width
+        this.y = Math.random() * canvas.height
+        this.vx = (Math.random() - 0.5) * 1.2
+        this.vy = (Math.random() - 0.5) * 1.2
+        this.life = 80 + Math.random() * 120
+        this.size = 1.5 + Math.random() * 2
+      }
+      update() {
+        this.x += this.vx
+        this.y += this.vy
+        this.life--
+        if (this.life <= 0 || this.x < 0 || this.x > canvas.width || this.y < 0 || this.y > canvas.height) this.reset()
+      }
+    }
+    for (let i = 0; i < 120; i++) particles.push(new DataParticle())
+    // ====================== RENDERING ======================
+    function worldToScreen(wx, wy) {
+      return {
+        x: canvas.width / 2 + (wx - offsetX) * scale,
+        y: canvas.height / 2 + (wy - offsetY) * scale
+      }
+    }
+
+    function screenToWorld(sx, sy) {
+      return {
+        x: offsetX + (sx - canvas.width / 2) / scale,
+        y: offsetY + (sy - canvas.height / 2) / scale
+      }
+    }
+
+    function draw() {
+      ctx.fillStyle = '#050505'
+      ctx.fillRect(0, 0, canvas.width, canvas.height)
+      // grid
+      ctx.strokeStyle = 'rgba(0,243,255,0.06)'
+      ctx.lineWidth = 1
+      const step = 60 * scale
+      const startX = Math.floor((offsetX - canvas.width / 2 / scale) / 60) * 60
+      const startY = Math.floor((offsetY - canvas.height / 2 / scale) / 60) * 60
+      for (let x = startX; x < offsetX + canvas.width / 2 / scale + 10; x += 60) {
+        const sx = worldToScreen(x, 0).x
+        ctx.beginPath()
+        ctx.moveTo(sx, 0)
+        ctx.lineTo(sx, canvas.height)
+        ctx.stroke()
+      }
+      for (let y = startY; y < offsetY + canvas.height / 2 / scale + 10; y += 60) {
+        const sy = worldToScreen(0, y).y
+        ctx.beginPath()
+        ctx.moveTo(0, sy)
+        ctx.lineTo(canvas.width, sy)
+        ctx.stroke()
+      }
+      // points
+      for (let i = 0; i < points.length; i++) {
+        const p = points[i]
+        const sp = worldToScreen(p.x, p.y)
+        ctx.fillStyle = '#00f3ff'
+        ctx.shadowBlur = 25
+        ctx.shadowColor = '#00f3ff'
+        ctx.beginPath()
+        ctx.arc(sp.x, sp.y, 5.5, 0, Math.PI * 2)
+        ctx.fill()
+        ctx.shadowBlur = 0
+      }
+      // closest pair
+      if (currentPair.pair.length === 2) {
+        const a = worldToScreen(currentPair.pair[0].x, currentPair.pair[0].y)
+        const b = worldToScreen(currentPair.pair[1].x, currentPair.pair[1].y)
+        ctx.strokeStyle = '#ff00aa'
+        ctx.lineWidth = 3.5
+        ctx.shadowBlur = 40
+        ctx.shadowColor = '#ff00aa'
+        ctx.beginPath()
+        ctx.moveTo(a.x, a.y)
+        ctx.lineTo(b.x, b.y)
+        ctx.stroke()
+        ctx.shadowBlur = 0
+        // distance label
+        const mx = (a.x + b.x) / 2
+        const my = (a.y + b.y) / 2 - 22
+        ctx.fillStyle = '#ff00aa'
+        ctx.font = '13px VT323'
+        ctx.textAlign = 'center'
+        ctx.fillText(currentPair.distance.toFixed(4), mx, my)
+      }
+    }
+
+    function drawParticles() {
+      pCtx.clearRect(0, 0, pCanvas.width, pCanvas.height)
+      for (let p of particles) {
+        p.update()
+        pCtx.fillStyle = `rgba(0,243,255,${p.life/120})`
+        pCtx.fillRect(p.x, p.y, p.size, p.size)
+      }
+    }
+
+    function animate() {
+      draw()
+      drawParticles()
+      requestAnimationFrame(animate)
+    }
+    // ====================== INTERACTION ======================
+    function findClosestPointIndex(sx, sy) {
+      let closest = -1
+      let minDist = 30
+      for (let i = 0; i < points.length; i++) {
+        const sp = worldToScreen(points[i].x, points[i].y)
+        const d = Math.hypot(sp.x - sx, sp.y - sy)
+        if (d < minDist) {
+          minDist = d
+          closest = i
+        }
+      }
+      return closest
+    }
+    canvas.addEventListener('mousedown', e => {
+      if (e.button === 1 || (e.button === 0 && e.shiftKey)) {
+        isDragging = true
+        lastMouseX = e.offsetX
+        lastMouseY = e.offsetY
+        canvas.style.cursor = 'grabbing'
+        return
+      }
+      const world = screenToWorld(e.offsetX, e.offsetY)
+      draggedPointIndex = findClosestPointIndex(e.offsetX, e.offsetY)
+      if (draggedPointIndex === -1) {
+        points.push(new VoidPoint(world.x, world.y))
+        if (autoRecompute) computeAndUpdate()
+      } else {
+        isDragging = true
+        lastMouseX = e.offsetX
+        lastMouseY = e.offsetY
+      }
+    })
+    canvas.addEventListener('mousemove', e => {
+      if (isDragging && draggedPointIndex >= 0) {
+        const world = screenToWorld(e.offsetX, e.offsetY)
+        points[draggedPointIndex].x = world.x
+        points[draggedPointIndex].y = world.y
+        if (autoRecompute) computeAndUpdate()
+      } else if (isDragging) {
+        offsetX -= (e.offsetX - lastMouseX) / scale
+        offsetY -= (e.offsetY - lastMouseY) / scale
+        lastMouseX = e.offsetX
+        lastMouseY = e.offsetY
+      }
+    })
+    canvas.addEventListener('mouseup', () => {
+      isDragging = false
+      draggedPointIndex = -1
+      canvas.style.cursor = 'crosshair'
+    })
+    canvas.addEventListener('dblclick', e => {
+      const idx = findClosestPointIndex(e.offsetX, e.offsetY)
+      if (idx >= 0) {
+        points.splice(idx, 1)
+        if (autoRecompute) computeAndUpdate()
+      }
+    })
+    canvas.addEventListener('wheel', e => {
+      e.preventDefault()
+      const factor = e.deltaY > 0 ? 0.9 : 1.12
+      const worldBefore = screenToWorld(e.offsetX, e.offsetY)
+      scale *= factor
+      const worldAfter = screenToWorld(e.offsetX, e.offsetY)
+      offsetX += worldBefore.x - worldAfter.x
+      offsetY += worldBefore.y - worldAfter.y
+    })
+    // ====================== COMPUTE & UI ======================
+    function computeAndUpdate() {
+      const start = performance.now()
+      const result = getClosestPair(points)
+      const end = performance.now()
+      currentPair = result
+      document.getElementById('pointCount').textContent = points.length
+      document.getElementById('currentDist').textContent = result.distance.toFixed(4)
+      document.getElementById('lastTime').textContent = (end - start).toFixed(2) + 'ms'
+      if (result.pair.length === 2) {
+        const hud = document.getElementById('distanceHUD')
+        hud.classList.remove('hidden')
+        document.getElementById('hudDist').textContent = result.distance.toFixed(4)
+        setTimeout(() => hud.classList.add('hidden'), 2200)
+      }
+      updatePairDisplay()
+    }
+
+    function updatePairDisplay() {
+      const container = document.getElementById('pairDisplay')
+      container.innerHTML = `
+                <div class="bg-zinc-950 p-4 rounded-xl border border-emerald-400/30">
+                    <div class="text-emerald-400 text-[10px] mb-1">CLOSEST VOID PAIR</div>
+                    <div class="flex justify-between text-xs">
+                        <div>
+                            <div class="text-cyan-300">P1</div>
+                            <div class="font-light">${currentPair.pair[0] ? currentPair.pair[0].x.toFixed(2) + ', ' + currentPair.pair[0].y.toFixed(2) : '-'}</div>
+                        </div>
+                        <div class="text-right">
+                            <div class="text-cyan-300">P2</div>
+                            <div class="font-light">${currentPair.pair[1] ? currentPair.pair[1].x.toFixed(2) + ', ' + currentPair.pair[1].y.toFixed(2) : '-'}</div>
+                        </div>
+                    </div>
+                    <div class="mt-4 text-3xl font-light text-emerald-400 tracking-tighter">${currentPair.distance.toFixed(4)}</div>
+                </div>
+            `
+    }
+
+    function runBruteForceViz() {
+      if (points.length > 35 || points.length < 2) {
+        alert("BRUTE SIM ONLY WORKS ON 3–35 POINTS\n(performance protocol)")
+        return
+      }
+      document.getElementById('modeDisplay').innerHTML = `
+                <div class="w-2 h-2 bg-orange-400 rounded-full animate-pulse"></div>
+                BRUTE FORCE SIM ACTIVE
+            `
+      let i = 0,
+        j = 1
+      const tempLines = []
+      const interval = setInterval(() => {
+        if (i >= points.length - 1) {
+          clearInterval(interval)
+          document.getElementById('modeDisplay').innerHTML = `
+                        <div class="w-2 h-2 bg-cyan-400 rounded-full animate-pulse"></div>
+                        READY
+                    `
+          computeAndUpdate()
+          return
+        }
+        if (j >= points.length) {
+          i++
+          j = i + 1
+        }
+        const a = points[i]
+        const b = points[j]
+        const d = euclidDist(a, b)
+        if (d < (currentPair.distance || Infinity)) {
+          currentPair = {
+            distance: d,
+            pair: [a, b]
+          }
+        }
+        draw()
+        const sa = worldToScreen(a.x, a.y)
+        const sb = worldToScreen(b.x, b.y)
+        ctx.strokeStyle = 'rgba(255,140,0,0.7)'
+        ctx.lineWidth = 1.5
+        ctx.beginPath()
+        ctx.moveTo(sa.x, sa.y)
+        ctx.lineTo(sb.x, sb.y)
+        ctx.stroke()
+        j++
+      }, 42)
+    }
+
+    function runOptimized() {
+      document.getElementById('modeDisplay').innerHTML = `
+                <div class="w-2 h-2 bg-emerald-400 rounded-full animate-pulse"></div>
+                QUANTUM DIVIDE ACTIVE
+            `
+      setTimeout(() => {
+        computeAndUpdate()
+        document.getElementById('modeDisplay').innerHTML = `
+                    <div class="w-2 h-2 bg-cyan-400 rounded-full animate-pulse"></div>
+                    READY
+                `
+      }, 180)
+    }
+
+    function toggleAutoRun() {
+      autoRecompute = !autoRecompute
+      const btn = document.getElementById('autoBtn')
+      btn.textContent = autoRecompute ? 'AUTO-RECOMPUTE ENABLED' : 'AUTO-RECOMPUTE DISABLED'
+      btn.style.borderColor = autoRecompute ? '#ff00aa' : '#666'
+    }
+    // ====================== TEST CASES ======================
+    function loadTestCase(n) {
+      points = []
+      if (n === 1) {
+        points = [
+          new VoidPoint(7.46489, 4.6268),
+          new VoidPoint(7.46911, 4.71611),
+          new VoidPoint(1, 2),
+          new VoidPoint(3, 3)
+        ]
+      } else if (n === 2) {
+        points = [
+          new VoidPoint(37134, 1963),
+          new VoidPoint(37181, 2008),
+          new VoidPoint(46817, 64975),
+          new VoidPoint(48953, 58567)
+        ]
+      } else if (n === 3) {
+        points = [
+          new VoidPoint(46817, 64975),
+          new VoidPoint(48953, 58567),
+          new VoidPoint(7.46489, 4.6268)
+        ]
+      }
+      offsetX = 0
+      offsetY = 0
+      scale = 1
+      computeAndUpdate()
+    }
+
+    function addRandomPoints(count) {
+      for (let i = 0; i < count; i++) {
+        const x = (Math.random() - 0.5) * 1200
+        const y = (Math.random() - 0.5) * 800
+        points.push(new VoidPoint(x, y))
+      }
+      computeAndUpdate()
+    }
+
+    function clearAllPoints() {
+      points = []
+      currentPair = {
+        distance: 0,
+        pair: []
+      }
+      computeAndUpdate()
+    }
+    // ====================== CODE TABS ======================
+    const jsCode = `class Point{constructor(x,y){this.x=x;this.y=y}}function getClosestPair(points){...} // full implementation above`
+    const pyCode = `from dataclasses import dataclass\n@dataclass\nclass Point:\n    x: float\n    y: float\n\ndef get_closest_pair(points): ...`
+    const javaCode = `class Point {\n    double x, y;\n    public Point(double x, double y) {...}\n}\n\npublic static ClosestPairResult getClosestPair(List<Point> points) {...}`
+
+    function showCodeTab(tab) {
+      document.querySelectorAll('#tab0,#tab1,#tab2').forEach((el, i) => {
+        el.dataset.active = (i === tab)
+      })
+      const viewer = document.getElementById('codeViewer')
+      viewer.innerHTML = `<pre class="text-emerald-300"><code class="language-javascript">${tab===0 ? jsCode : tab===1 ? pyCode : javaCode}</code></pre>`
+      hljs.highlightAll()
+    }
+
+    function copyCurrentPair() {
+      const data = JSON.stringify({
+        distance: currentPair.distance,
+        pair: currentPair.pair.map(p => ({
+          x: p.x,
+          y: p.y
+        }))
+      }, null, 2)
+      navigator.clipboard.writeText(data).then(() => {
+        const orig = document.getElementById('pairDisplay').innerHTML
+        document.getElementById('pairDisplay').innerHTML = `<div class="text-emerald-400 text-center py-8">COPIED TO CLIPBOARD ✓</div>`
+        setTimeout(() => document.getElementById('pairDisplay').innerHTML = orig, 1400)
+      })
+    }
+    // ====================== KEYBOARD ======================
+    document.addEventListener('keydown', e => {
+      if (e.key === '/' && e.target.tagName !== "INPUT") {
+        e.preventDefault()
+        addRandomPoints(35)
+      }
+      if (e.key === 'r' || e.key === 'R') runOptimized()
+    })
+    // ====================== INIT ======================
+    function init() {
+      canvas.width = 1200
+      canvas.height = 800
+      pCanvas.width = 1200
+      pCanvas.height = 800
+      // demo points
+      points = [
+        new VoidPoint(-220, -180),
+        new VoidPoint(310, 90),
+        new VoidPoint(-85, 240),
+        new VoidPoint(140, -130),
+        new VoidPoint(60, 170)
+      ]
+      computeAndUpdate()
+      animate()
+      // initial code tab
+      showCodeTab(0)
+      // resize handler
+      window.addEventListener('resize', () => {
+        // fixed size for demo
+      })
+      console.log('%cNEXUS-CP INITIALIZED — O(n log n) PROTOCOL ACTIVE', 'color:#00f3ff; font-family:monospace')
+    }
+    window.onload = init
+  </script>
+</body>
+
+</html>
